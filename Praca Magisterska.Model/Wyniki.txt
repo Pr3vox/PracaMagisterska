@@ -1,0 +1,8 @@
+Praca Magisterska.Model\Podział_Kategorie\Czyste\Szałwia01.jpg
+To zdjęcie należy do klasy: Czyste z pewnością wynoszącą 54.12%.
+
+Praca Magisterska.Model\Podział_Kategorie\Krzyżowe\Czystek-Mieta.jpg
+To zdjęcie należy do klasy: Czyste z pewnością wynoszącą 45.29%.
+
+Praca Magisterska.Model\Podział_Kategorie\Organiczne\Lipa-Ograniczne02.jpg
+To zdjęcie należy do klasy: Czyste z pewnością wynoszącą 42.55%.

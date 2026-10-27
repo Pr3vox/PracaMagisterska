@@ -2,8 +2,8 @@ import tensorflow as tf
 from tensorflow.keras import layers, models
 from tensorflow.keras.applications import ResNet50
 
-# Ścieżka
-data_dir = r"C:\Users\pr3vo\Desktop\ZDJ"
+#ścieżka
+data_dir = "Podział_Kategorie"
 
 IMG_HEIGHT = 224
 IMG_WIDTH = 224
@@ -12,7 +12,7 @@ EPOCHS = 10
 
 print("Wczytywanie zdjęć")
 
-# Automatyczne ładowanie danych z folderów ziół i herbat
+#ładowanie danych z folderów
 train_ds = tf.keras.utils.image_dataset_from_directory(
     data_dir,
     validation_split=0.2,
@@ -33,7 +33,7 @@ val_ds = tf.keras.utils.image_dataset_from_directory(
 
 class_names = train_ds.class_names
 num_classes = len(class_names)
-print(f"Wykryte klasy ziół/herbat: {class_names}")
+print(f"Wykryte klasy ziół: {class_names}")
 
 # Optymalizacja
 AUTOTUNE = tf.data.AUTOTUNE
@@ -59,7 +59,7 @@ model.compile(optimizer='adam',
               loss='sparse_categorical_crossentropy',
               metrics=['accuracy'])
 
-print("Rozpoczynam trening modelu...")
+print("Trening modelu")
 history = model.fit(
     train_ds,
     validation_data=val_ds,
@@ -67,5 +67,5 @@ history = model.fit(
 )
 
 # Zapis modelu
-model.save("model_herbaty_ziola.h5")
-print("Sukces! Model został wytrenowany i zapisany.")
+model.save("model_ziola.h5")
+print("Model został wytrenowany i zapisany.")
