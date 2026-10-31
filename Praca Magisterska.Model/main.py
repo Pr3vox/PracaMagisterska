@@ -54,7 +54,7 @@ model = models.Sequential([
     layers.Dropout(0.2),
     layers.Dense(num_classes, activation='softmax')
 ])
-
+# Konfiguracja nauki
 model.compile(optimizer='adam',
               loss='sparse_categorical_crossentropy',
               metrics=['accuracy'])
