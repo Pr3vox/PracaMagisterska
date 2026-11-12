@@ -1,20 +1,20 @@
 import numpy as np
 import tensorflow as tf
-from sklearn.metrics import classification_report
+from sklearn.metrics import accuracy_score, classification_report, confusion_matrix
 from tensorflow.keras import layers, models
 from tensorflow.keras.applications import ResNet50
+from tensorflow.keras.applications.resnet50 import preprocess_input
 
-# --- ŚCIEŻKA DO GŁÓWNEGO FOLDERU ZE ZDJĘCIAMI ---
+# Ścieżka do folderu ze zdjęciami
 data_dir = r"C:\Users\pr3vo\Desktop\PracaMagisterska_Model\Praca Magisterska.Model\Podział_Kategorie"
 
+# Ustawienia
 IMG_HEIGHT = 224
 IMG_WIDTH = 224
-BATCH_SIZE = 32  # Jeśli masz bardzo mało zdjęć, możesz zmniejszyć np. do 4 lub 8
+BATCH_SIZE = 4
 EPOCHS = 10
 
-print("Wczytywanie zdjęć...")
-
-# Ładowanie danych z folderów (80% trening, 20% walidacja)
+# Wczytanie zdjęć: 80% trening, 20% walidacja
 train_ds = tf.keras.utils.image_dataset_from_directory(
     data_dir,
     validation_split=0.2,
@@ -35,65 +35,77 @@ val_ds = tf.keras.utils.image_dataset_from_directory(
 
 class_names = train_ds.class_names
 num_classes = len(class_names)
-print(f"Wykryte klasy ziół: {class_names}")
+print(f"Klasy: {class_names}")
 
-# --- OPTYMALIZACJA WYDAJNOŚCI ---
+
+# Pre-processing pod ResNet50
+def prepare(image, label):
+    return preprocess_input(image), label
+
+
 AUTOTUNE = tf.data.AUTOTUNE
-train_ds = train_ds.cache().shuffle(1000).prefetch(buffer_size=AUTOTUNE)
-val_ds = val_ds.cache().prefetch(buffer_size=AUTOTUNE)
+train_ds = train_ds.map(prepare, num_parallel_calls=AUTOTUNE).cache().shuffle(1000).prefetch(AUTOTUNE)
+val_ds = val_ds.map(prepare, num_parallel_calls=AUTOTUNE).cache().prefetch(AUTOTUNE)
 
-print("Pobieranie modelu bazowego ResNet50...")
-base_model = ResNet50(input_shape=(IMG_HEIGHT, IMG_WIDTH, 3),
-                      include_top=False,
-                      weights='imagenet')
-base_model.trainable = False
-
-# --- BUDOWA MODELU ---
-model = models.Sequential([
-    base_model,
-    layers.GlobalAveragePooling2D(),
-    layers.Dense(128, activation='relu'),
-    layers.Dropout(0.2),
-    layers.Dense(num_classes, activation='softmax')
+# Augmentacja (działa tylko w trakcie treningu)
+data_augmentation = models.Sequential([
+    layers.RandomFlip("horizontal_and_vertical"),
+    layers.RandomRotation(0.15),
 ])
 
-model.compile(optimizer='adam',
-              loss='sparse_categorical_crossentropy',
-              metrics=['accuracy'])
+# Model bazowy ResNet50 (zamrożony)
+base_model = ResNet50(input_shape=(IMG_HEIGHT, IMG_WIDTH, 3),
+                      include_top=False,
+                      weights="imagenet")
+base_model.trainable = False
 
-# --- TRENING ---
-print("Rozpoczynam trening modelu...")
-history = model.fit(
-    train_ds,
-    validation_data=val_ds,
-    epochs=EPOCHS
-)
+# Budowa modelu
+model = models.Sequential([
+    layers.Input(shape=(IMG_HEIGHT, IMG_WIDTH, 3)),
+    data_augmentation,
+    base_model,
+    layers.GlobalAveragePooling2D(),
+    layers.Dense(128, activation="relu"),
+    layers.Dropout(0.2),
+    layers.Dense(num_classes, activation="softmax")
+])
 
-# --- RAPORT DLA PROMOTORA (Tylko Precision i Recall) ---
-print("\n--- RAPORT KLASYFIKACJI (Precision i Recall) ---")
+model.compile(optimizer="adam",
+              loss="sparse_categorical_crossentropy",
+              metrics=["accuracy"])
+
+# Trening
+model.fit(train_ds, validation_data=val_ds, epochs=EPOCHS)
+
+# Predykcje na zbiorze walidacyjnym
 y_true = []
 y_pred = []
-
 for images, labels in val_ds:
     predictions = model.predict(images, verbose=0)
-    predicted_classes = np.argmax(predictions, axis=1)
+    y_pred.extend(np.argmax(predictions, axis=1))
     y_true.extend(labels.numpy())
-    y_pred.extend(predicted_classes)
 
-# Wygenerowanie słownika z raportem (zabezpieczenie zero_division)
-report_dict = classification_report(
-    y_true, y_pred, target_names=class_names, output_dict=True, zero_division=0
+# Accuracy
+print(f"\nAccuracy: {accuracy_score(y_true, y_pred):.4f}\n")
+
+# Precision i recall dla każdej klasy
+report = classification_report(
+    y_true, y_pred,
+    labels=range(num_classes),
+    target_names=class_names,
+    output_dict=True,
+    zero_division=0
 )
 
-# Wyświetlenie czytelnej tabelki zawierającej wyłącznie Precision i Recall
 print(f"{'Klasa':<15} | {'Precision':<12} | {'Recall':<12}")
 print("-" * 45)
+for name in class_names:
+    print(f"{name:<15} | {report[name]['precision']:<12.4f} | {report[name]['recall']:<12.4f}")
 
-for class_name in class_names:
-    prec = report_dict[class_name]["precision"]
-    rec = report_dict[class_name]["recall"]
-    print(f"{class_name:<15} | {prec:<12.4f} | {rec:<12.4f}")
+# Macierz pomyłek
+print("\nMacierz pomyłek:")
+print(confusion_matrix(y_true, y_pred, labels=range(num_classes)))
 
-# --- ZAPIS MODELU ---
-model.save("model_ziola.h5")
-print("\nModel został pomyślnie wytrenowany i zapisany jako 'model_ziola.h5'.")
+# Zapis modelu
+model.save("model2.h5")
+print("\nModel zapisany jako 'model2.h5'.")
