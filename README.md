@@ -1,4 +1,10 @@
 # PracaMagisterska
+# Klasyfikacja zanieczyszczeń suszu herbacianego przy użyciu głębokich sieci konwolucyjnych
+
+Praca magisterska przedstawia model uczenia maszynowego, który na podstawie zdjęcia suszu rozpoznaje, czy jest on czysty, czy zanieczyszczony krzyżowo lub materiałem organicznym.
+
+
+
 # Pliki
 
 | Plik | Opis |
@@ -18,6 +24,7 @@ Podział:
 - Krzyżowe - 35
 - Organiczne - 35
 
+
 ## Ustawienia treningu
 
 | Parametr | Wartość |
@@ -26,6 +33,7 @@ Podział:
 | Liczba epok | 10 |
 | Optymalizator | Adam |
 
+Do treningu użyto 80% zdjęć (101), do walidacji 20% (25).
 
 ## Wyniki (zbiór walidacyjny, 25 zdjęć)
 
