@@ -4,6 +4,7 @@ from sklearn.metrics import accuracy_score, classification_report, confusion_mat
 from tensorflow.keras import layers, models
 from tensorflow.keras.applications import ResNet50
 from tensorflow.keras.applications.resnet50 import preprocess_input
+from tensorflow.keras.callbacks import EarlyStopping, ReduceLROnPlateau
 
 # Ścieżka do folderu ze zdjęciami
 data_dir = r"C:\Users\pr3vo\Desktop\PracaMagisterska_Model\Praca Magisterska.Model\Podział_Kategorie"
@@ -12,7 +13,8 @@ data_dir = r"C:\Users\pr3vo\Desktop\PracaMagisterska_Model\Praca Magisterska.Mod
 IMG_HEIGHT = 224
 IMG_WIDTH = 224
 BATCH_SIZE = 4
-EPOCHS = 10
+EPOCHS = 30
+LEARNING_RATE = 1e-4
 
 # Wczytanie zdjęć: 80% trening, 20% walidacja
 train_ds = tf.keras.utils.image_dataset_from_directory(
@@ -70,12 +72,21 @@ model = models.Sequential([
     layers.Dense(num_classes, activation="softmax")
 ])
 
-model.compile(optimizer="adam",
+# Adam z ustawionym learning_rate
+model.compile(optimizer=tf.keras.optimizers.Adam(learning_rate=LEARNING_RATE),
               loss="sparse_categorical_crossentropy",
               metrics=["accuracy"])
 
+# Callbacks
+callbacks = [
+    # Zatrzymuje trening, gdy val_loss przestaje się poprawiać, i wraca do najlepszej wersji
+    EarlyStopping(monitor="val_loss", patience=6, restore_best_weights=True),
+    # Zmniejsza learning_rate o połowę, gdy val_loss stoi w miejscu
+    ReduceLROnPlateau(monitor="val_loss", factor=0.5, patience=3, min_lr=1e-6),
+]
+
 # Trening
-model.fit(train_ds, validation_data=val_ds, epochs=EPOCHS)
+model.fit(train_ds, validation_data=val_ds, epochs=EPOCHS, callbacks=callbacks)
 
 # Predykcje na zbiorze walidacyjnym
 y_true = []
@@ -107,5 +118,5 @@ print("\nMacierz pomyłek:")
 print(confusion_matrix(y_true, y_pred, labels=range(num_classes)))
 
 # Zapis modelu
-model.save("model2.h5")
-print("\nModel zapisany jako 'model2.h5'.")
+model.save("model_2.h5")
+print("\nModel zapisany jako 'model_2.h5'.")
